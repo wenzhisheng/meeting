@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.areacascade.dao.IAreaCascadeDao">
+
+  <!-- 级联列表 -->
+  <select id="cascadeList" resultType="com.meeting.common.pojo.areacascade.AreaCascadeVO">
+    select <include refid="base_sql"/>
+    from area_cascade t
+    where 1=1
+      <if test="vo.level != null">
+        and t.level = #{vo.level,jdbcType=INTEGER}
+      </if>
+      <if test="vo.parentId != null">
+        and t.parentId = #{vo.parentId,jdbcType=INTEGER}
+      </if>
+      <if test="vo.cityCode != null">
+        and t.cityCode = #{vo.cityCode,jdbcType=VARCHAR}
+      </if>
+      <if test="vo.areaCode != null">
+        and t.areaCode = #{vo.areaCode,jdbcType=VARCHAR}
+      </if>
+  </select>
+
+  <!-- 插入级联 -->
+  <insert id="insert" parameterType="com.meeting.common.pojo.areacascade.AreaCascadeVO">
+    insert into area_cascade (
+      areaId,
+      areaCode,
+      areaName,
+      level,
+      cityCode,
+      center,
+      parentId
+    ) values (
+      #{vo.areaId,jdbcType=INTEGER},
+      #{vo.areaCode,jdbcType=VARCHAR},
+      #{vo.areaName,jdbcType=VARCHAR},
+      #{vo.level,jdbcType=INTEGER},
+      #{vo.cityCode,jdbcType=VARCHAR},
+      #{vo.center,jdbcType=VARCHAR},
+      #{vo.parentId,jdbcType=INTEGER}
+    );
+  </insert>
+
+  <!-- base -->
+  <sql id="base_sql">
+    t.areaId,
+    t.areaCode,
+    t.areaName,
+    t.level,
+    t.cityCode,
+    t.center,
+    t.parentId
+  </sql>
+
+</mapper>

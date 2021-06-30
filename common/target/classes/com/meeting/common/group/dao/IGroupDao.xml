@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.group.dao.IGroupDao">
+
+  <!-- 获取群消息控制 -->
+  <select id="getGroupByDialog" resultType="com.meeting.common.pojo.group.GroupVO">
+    select
+      t.chat_top as chatTop,
+      t.is_disturb as isDisturb,
+      t.alias,
+      t.avatar,
+      t.account,
+      (select count(*)
+      from groups g
+      where
+        g.admin_id = #{vo.memberId,jdbcType=INTEGER}
+        and g.groups_id = #{vo.targetId,jdbcType=INTEGER}
+      ) as groupCount
+    from groups t
+    where
+      t.admin_id = #{vo.memberId,jdbcType=INTEGER}
+      and t.groups_id = #{vo.targetId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 获取群组 -->
+  <select id="getGroup" resultType="com.meeting.common.pojo.group.GroupVO">
+    select <include refid="base_sql"/>
+    from groups t
+    where t.account = #{vo.account,jdbcType=VARCHAR}
+  </select>
+
+  <!-- 是否是群组管理员 -->
+  <select id="isGroupAdministrator" resultType="boolean">
+    select count(*)
+    from groups t
+    where
+      t.groups_id = #{vo.groupsId,jdbcType=INTEGER}
+      and t.member_id = #{vo.memberId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 解散群组 -->
+  <delete id="delete" parameterType="int">
+    delete
+    from groups
+    where
+      groups_id = #{vo.groupsId,jdbcType=INTEGER}
+      and member_id = #{vo.memberId,jdbcType=INTEGER}
+  </delete>
+
+  <!-- 编辑群组 -->
+  <update id="update" parameterType="com.meeting.common.pojo.group.GroupVO">
+    update groups t
+    <set>
+      <if test="vo.avatar != null">
+        t.avatar = #{vo.avatar,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.nickname != null">
+        t.nickname = #{vo.nickname,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.announcement != null">
+        t.announcement = #{vo.announcement,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.chatTop != null">
+        t.chat_top = #{vo.chatTop,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.isDisturb != null">
+        t.is_disturb = #{vo.isDisturb,jdbcType=VARCHAR},
+      </if>
+      t.gmt_modified = sysdate()
+    </set>
+    where
+      t.member_id = #{vo.memberId,jdbcType=INTEGER}
+      and t.groups_id = #{vo.groupsId,jdbcType=INTEGER}
+  </update>
+
+  <!-- 修改群组 -->
+  <update id="updateGroup" parameterType="com.meeting.common.pojo.group.GroupVO">
+    update groups t
+    <set>
+      <if test="vo.avatar != null">
+        t.member_id = #{vo.memberId,jdbcType=INTEGER},
+      </if>
+      <if test="vo.avatar != null">
+        t.avatar = #{vo.avatar,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.nickname != null">
+        t.nickname = #{vo.nickname,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.announcement != null">
+        t.announcement = #{vo.announcement,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.chatTop != null">
+        t.chat_top = #{vo.chatTop,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.isDisturb != null">
+        t.is_disturb = #{vo.isDisturb,jdbcType=VARCHAR},
+      </if>
+      t.gmt_modified = sysdate()
+    </set>
+    where t.groups_id = #{vo.groupsId,jdbcType=INTEGER}
+  </update>
+
+  <!-- 群组数量 -->
+  <select id="countGroup" resultType="int">
+    select count(*)
+    from groups g
+    where g.member_id = #{vo.memberId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 对话信息 -->
+  <select id="dialogueInfo" resultType="com.meeting.common.pojo.group.GroupDialogDTO">
+    select
+      g.groups_id as groupsId,
+      g.member_id as memberId,
+      g.member_account as memberAccount,
+      g.account,
+      g.nickname,
+      g.avatar,
+      g.announcement,
+      g.chat_top as chatTop,
+      g.is_disturb as isDisturb
+    from groups g
+    where
+      g.member_id = #{vo.memberId,jdbcType=INTEGER}
+      and g.groups_id = #{vo.targetId,jdbcType=INTEGER}
+  </select>
+
+  <select id="page" resultType="com.meeting.common.pojo.group.GroupVO">
+    select <include refid="base_sql"/>
+    from groups t
+    <include refid="search_condition"/>
+    order by t.gmt_create desc;
+  </select>
+
+  <!-- 获取群组 -->
+  <select id="list" resultType="com.meeting.common.pojo.group.GroupVO">
+    select <include refid="base_sql"/>
+    from groups t
+    where t.member_id = #{vo.memberId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 创建群组 -->
+  <insert id="insert">
+    insert into groups (
+      member_id,
+      member_account,
+      account,
+      nickname,
+      avatar,
+      announcement,
+      chat_top,
+      is_disturb,
+      gmt_create,
+      gmt_modified
+    ) values (
+      #{vo.memberId,jdbcType=INTEGER},
+      #{vo.memberAccount,jdbcType=VARCHAR},
+      #{vo.account,jdbcType=VARCHAR},
+      #{vo.nickname,jdbcType=VARCHAR},
+      #{vo.avatar,jdbcType=VARCHAR},
+      #{vo.announcement,jdbcType=VARCHAR},
+      #{vo.chatTop,jdbcType=VARCHAR},
+      #{vo.isDisturb,jdbcType=VARCHAR},
+      sysdate(),
+      sysdate()
+    )
+  </insert>
+
+  <sql id="base_sql">
+    t.groups_id as groupsId,
+    t.member_id as memberId,
+    t.member_account as memberAccount,
+    t.account,
+    t.nickname,
+    t.avatar,
+    t.announcement,
+    t.chat_top as chatTop,
+    t.is_disturb as isDisturb,
+    t.gmt_create as gmtCreate,
+    t.gmt_modified as gmtModified
+  </sql>
+
+  <sql id="search_condition">
+    where 1=1
+    <if test="vo.groupsId != null">
+      and t.groups_id = #{vo.groupsId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.memberId != null">
+      and t.member_id = #{vo.memberId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.memberAccount != null">
+      and t.member_account = #{vo.memberAccount,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.account != null">
+      and t.account = #{vo.account,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.nickname != null">
+      and t.nickname = #{vo.nickname,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.announcement != null">
+      and t.announcement = #{vo.announcement,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.chatTop != null">
+      and t.chat_top = #{vo.chatTop,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.isDisturb != null">
+      and t.is_disturb = #{vo.isDisturb,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.startTime != null">
+      and t.gmt_create &gt;= #{vo.startTime,jdbcType=TIMESTAMP}
+    </if>
+    <if test="vo.endTime != null">
+      and t.gmt_create &lt;= #{vo.endTime,jdbcType=TIMESTAMP}
+    </if>
+  </sql>
+
+</mapper>

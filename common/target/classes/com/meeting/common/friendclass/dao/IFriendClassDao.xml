@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.friendclass.dao.IFriendClassDao">
+
+  <!-- 好友分组列表 -->
+  <select id="list" resultType="com.meeting.common.pojo.friend.FriendDTO">
+    select
+      t.friend_class_id as friendClassId,
+      t.namespace as namespace
+    from friend_class t
+    where t.member_id = #{vo.memberId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 删除好友分组 -->
+  <delete id="delete" parameterType="int">
+    delete from friend_class
+    where friend_class_id = #{vo.friendClassId,jdbcType=INTEGER}
+  </delete>
+
+  <!-- 好友分组获取 -->
+  <select id="getFriendClass" resultType="com.meeting.common.pojo.friendclass.FriendClassVO">
+    select <include refid="base_sql"/>
+    from friend_class t
+    <include refid="search_condition"/>
+  </select>
+
+  <!-- 修改分组 -->
+  <update id="update" parameterType="com.meeting.common.pojo.friendclass.FriendClassVO">
+    update friend_class t
+    set t.namespace = #{vo.namespace,jdbcType=VARCHAR}
+    where t.member_id = #{vo.memberId,jdbcType=INTEGER}
+  </update>
+
+  <!-- 获取分组 -->
+  <select id="getFriendTypeName" resultType="com.meeting.common.pojo.friendclass.FriendClassVO">
+    select <include refid="base_sql"/>
+    from friend_class t
+    where t.member_id = #{userId,jdbcType=INTEGER}
+    group by t.namespace order by t.id asc;
+  </select>
+
+  <!-- 根据会员ID获取分类ID -->
+  <select id="getFriendClassByMemberId" resultType="com.meeting.common.pojo.friendclass.FriendClassVO">
+    select
+      t.friend_class_id as friendClassId
+    from friend_class t
+    where t.member_id =  #{id,jdbcType=INTEGER}
+    limit 1;
+  </select>
+
+  <!-- 添加分组 -->
+  <insert id="insert">
+    insert into friend_class (
+      member_id,
+      namespace,
+      is_grouping,
+      gmt_create,
+      gmt_modified
+    ) values (
+      #{vo.memberId,jdbcType=INTEGER},
+      #{vo.namespace,jdbcType=VARCHAR},
+      #{vo.isGrouping,jdbcType=TINYINT},
+      sysdate(),
+      sysdate()
+    )
+  </insert>
+
+  <sql id="base_sql">
+    t.friend_class_id as friendClassId,
+    t.member_id as memberId,
+    t.namespace as namespace,
+    t.is_grouping as isGrouping,
+    t.gmt_create as gmtCreate
+  </sql>
+
+  <sql id="search_condition">
+    where 1=1
+    <if test="vo.friendClassId != null">
+        and t.friend_class_id = #{vo.friendClassId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.memberId != null">
+        and t.member_id = #{vo.memberId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.namespace != null">
+        and t.namespace = #{vo.namespace,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.isGrouping != null">
+        and t.is_grouping = #{vo.isGrouping,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.startTime != null">
+        and t.gmt_create &gt;= #{vo.startTime,jdbcType=TIMESTAMP}
+    </if>
+    <if test="vo.endTime != null">
+        and t.gmt_create &lt;= #{vo.endTime,jdbcType=TIMESTAMP}
+    </if>
+  </sql>
+
+</mapper>

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.adminlog.dao.IAdminLogDao">
+
+  <!-- 删除会员登录日志 -->
+  <delete id="batchDelete">
+    delete from admin_log
+    where log_id in
+    <foreach collection="vo.ids" item="item" index="index" open="(" separator="," close=")">
+      #{item}
+    </foreach>
+  </delete>
+
+  <!-- 分页查询会员登录日志 -->
+  <select id="page" resultType="com.meeting.common.pojo.adminlog.AdminLogVO">
+    select <include refid="base_sql"/>
+    from admin_log t
+    where <include refid="search_condition"/>
+    order by t.login_time desc
+  </select>
+
+  <!-- 新增会员登录日志 -->
+  <insert id="insert">
+    insert into admin_log (
+    account,
+    login_ip,
+    login_real_address,
+    login_time
+    )
+    values (
+    #{vo.account,jdbcType=VARCHAR},
+    #{vo.loginIp,jdbcType=VARCHAR},
+    #{vo.loginRealAddress,jdbcType=VARCHAR},
+    sysdate()
+    )
+  </insert>
+
+  <sql id="base_sql">
+    t.log_id as logId,
+    t.account as account,
+    t.login_ip as loginIp,
+    t.login_real_address as loginRealAddress,
+    t.login_time as loginTime
+  </sql>
+
+  <sql id="search_condition">
+     1=1
+    <if test="vo.logId != null">
+      and t.log_id = #{vo.logId,jdbcType=BIGINT}
+    </if>
+    <if test="vo.account != null">
+      and t.account = #{vo.account,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.loginIp != null">
+      and t.login_ip = #{vo.loginIp,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.loginRealAddress != null">
+      and t.login_real_address = #{vo.loginRealAddress,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.startTime != null ">
+      and t.login_time &gt;= #{vo.startTime,jdbcType=TIMESTAMP}
+    </if>
+    <if test="vo.endTime != null ">
+      and t.login_time &lt;= #{vo.endTime,jdbcType=TIMESTAMP}
+    </if>
+  </sql>
+
+</mapper>

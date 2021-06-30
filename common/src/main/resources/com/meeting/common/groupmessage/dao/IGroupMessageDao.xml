@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.groupmessage.dao.IGroupMessageDao">
+
+  <!-- 删除单聊记录 -->
+  <update id="deleteGroupMessage" parameterType="com.meeting.common.pojo.groupmessage.GroupMessageVO">
+    update group_message zs
+    set zs.is_del = 1
+    where
+     (zs.send_id = #{vo.sendId,jdbcType=VARCHAR} and zs.group_id = #{vo.groupId,jdbcType=VARCHAR})
+     or (zs.send_id = #{vo.groupId,jdbcType=VARCHAR} and zs.group_id = #{vo.sendId,jdbcType=VARCHAR})
+  </update>
+  <update id="deleteGroupMessage1" parameterType="com.meeting.common.pojo.dialog.DialogVO">
+    update group_message zs
+    set zs.is_del = 1
+    where
+     (zs.send_id = #{vo.memberId,jdbcType=VARCHAR} and zs.group_id = #{vo.targetId,jdbcType=VARCHAR})
+     or (zs.send_id = #{vo.targetId,jdbcType=VARCHAR} and zs.group_id = #{vo.memberId,jdbcType=VARCHAR})
+  </update>
+
+  <select id="getHistoryMessage" resultType="com.meeting.common.pojo.groupmessage.GroupMessageVO">
+    select <include refid="base_sql"/>
+    from group_message t
+    <include refid="search_condition"/>
+    order by t.gmt_create desc;
+  </select>
+
+  <!-- 群聊删除消息 -->
+  <update id="readOrRecallOrDelete" parameterType="com.meeting.common.pojo.groupmessage.GroupMessageVO">
+    update group_message zs
+    <set>
+      <if test="vo.isRead != null">
+        zs.is_read = #{vo.isRead,jdbcType=INTEGER},
+      </if>
+      <if test="vo.isBack != null">
+        zs.is_back = #{vo.isBack,jdbcType=INTEGER},
+      </if>
+      <if test="vo.isDel != null">
+        zs.is_del = #{vo.isDel,jdbcType=INTEGER},
+      </if>
+      zs.gmt_modified = now()
+    </set>
+    where zs.msgid = #{vo.msgid,jdbcType=VARCHAR}
+  </update>
+
+  <!-- 最新30条消息 -->
+  <select id="listMessage" resultType="com.meeting.common.pojo.friendmessage.MessageResultDTO">
+    select ws.* from(
+      select
+        zs.*
+        ,mm.nickname as receiveNickname
+        ,mm.avatar as receiveAvatar
+      from(
+      select
+        t.group_message_id as messageId,
+        t.send_id as sendId,
+        t.send_account as sendAccount,
+        t.group_id as receiveId,
+        t.group_account as receiveAccount,
+        t.content as content,
+        t.msgid as msgid,
+        t.is_read as isRead,
+        t.is_del as isDel,
+        t.is_back as isBack,
+        t.message_type as messageType,
+        t.gmt_create as gmtCreate,
+        m.nickname as sendNickname,
+        m.avatar as sendAvatar
+      from group_message t
+      join member m on m.member_id = t.send_id
+      where t.is_del = 0 and t.is_back = 0
+        and (t.send_id = #{vo.memberId,jdbcType=INTEGER} or t.group_id = #{vo.memberId,jdbcType=INTEGER})
+        and (t.group_id = #{vo.targetId,jdbcType=INTEGER} or t.send_id = #{vo.targetId,jdbcType=INTEGER})
+      )zs left join member mm on mm.member_id = zs.receiveId order by zs.gmtCreate desc limit 30
+    )ws order by ws.gmtCreate asc
+  </select>
+
+  <!-- 保存群聊记录 -->
+  <insert id="save">
+    insert into group_message (
+      send_id,
+      send_account,
+      group_id,
+      group_account,
+      content,
+      msgid,
+      is_read,
+      is_del,
+      is_back,
+      message_type,
+      gmt_create,
+      gmt_modified
+    )
+    values (
+      #{vo.sendId,jdbcType=INTEGER},
+      #{vo.sendAccount,jdbcType=VARCHAR},
+      #{vo.groupId,jdbcType=INTEGER},
+      #{vo.groupAccount,jdbcType=VARCHAR},
+      #{vo.content,jdbcType=VARCHAR},
+      #{vo.msgid,jdbcType=VARCHAR},
+      #{vo.isRead,jdbcType=INTEGER},
+      #{vo.isDel,jdbcType=INTEGER},
+      #{vo.isBack,jdbcType=INTEGER},
+      #{vo.messageType,jdbcType=VARCHAR},
+      sysdate(),
+      sysdate()
+    )
+  </insert>
+
+  <sql id="base_sql">
+    t.group_message_id as groupMessageId,
+    t.send_id as sendId,
+    t.send_account as sendAccount,
+    t.group_id as groupId,
+    t.group_account as groupAccount,
+    t.content as content,
+    t.msgid as msgid,
+    t.is_read as isRead,
+    t.is_del as isDel,
+    t.is_back as isBack,
+    t.message_type as messageType,
+    t.gmt_create as gmtCreate,
+    t.gmt_modified as gmtModified
+  </sql>
+
+  <sql id="search_condition">
+    where 1=1
+    <if test="vo.groupMessageId != null">
+        and t.group_message_id = #{vo.groupMessageId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.sendId != null">
+        and t.send_id = #{vo.sendId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.sendAccount != null">
+        and t.send_account = #{vo.sendAccount,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.groupId != null">
+        and t.group_id = #{vo.groupId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.groupAccount != null">
+        and t.group_account = #{vo.groupAccount,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.content != null">
+        and t.content like CONCAT('%',#{vo.content,jdbcType=VARCHAR},'%')
+    </if>
+    <if test="vo.msgid != null">
+        and t.msgid = #{vo.msgid,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.message_type != null">
+        and t.message_type = #{vo.messageType,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.startTime != null">
+        and t.gmt_create &gt;= #{vo.startTime,jdbcType=TIMESTAMP}
+    </if>
+    <if test="vo.endTime != null">
+        and t.gmt_create &lt;= #{vo.endTime,jdbcType=TIMESTAMP}
+    </if>
+  </sql>
+
+</mapper>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.ipwhite.dao.IIpWhiteDao">
+
+  <!-- IP是否过白 -->
+  <select id="isIpWhite" resultType="boolean">
+    select count(*)
+    from ip_white zs
+    where t.ip = #{vo.ip,jdbcType=VARCHAR}
+  </select>
+
+  <!-- IP白名单删除 -->
+  <delete id="delete" parameterType="int">
+    delete from ip_white
+    where id = #{id,jdbcType=INTEGER}
+  </delete>
+
+  <!-- IP白名单更新 -->
+  <update id="update" parameterType="com.meeting.common.pojo.ipwhite.IpWhiteVO">
+    update ip_white t
+    <set>
+      <if test="vo.ip != null">
+        t.ip = #{vo.ip,jdbcType=VARCHAR}
+      </if>
+      <if test="vo.status != null">
+        t.status = #{vo.status,jdbcType=INTEGER},
+      </if>
+      t.gmt_modified = sysdate()
+    </set>
+    where t.id = #{vo.id,jdbcType=INTEGER}
+  </update>
+
+  <!-- IP白名单分页 -->
+  <select id="page" resultType="com.meeting.common.pojo.ipwhite.IpWhiteVO">
+    select <include refid="base_sql"/>
+    from ip_white t
+    <include refid="search_condition"/>
+    order by t.gmt_create desc;
+  </select>
+
+  <!-- 添加IP白名单 -->
+  <insert id="insert">
+    insert into ip_white (
+      id,
+      ip,
+      status,
+      gmt_create
+    ) values (
+      #{vo.id,jdbcType=INTEGER},
+      #{vo.ip,jdbcType=VARCHAR},
+      #{vo.status,jdbcType=INTEGER},
+      sysdate()
+    )
+  </insert>
+
+  <sql id="base_sql">
+    t.id,
+    t.ip,
+    t.status,
+    t.gmt_create as gmtCreate
+  </sql>
+
+  <sql id="search_condition">
+    where 1=1
+    <if test="vo.id != null">
+        and t.id = #{vo.id,jdbcType=INTEGER}
+    </if>
+    <if test="vo.ip != null">
+        and t.ip = #{vo.ip,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.status != null">
+      and t.status = #{vo.status,jdbcType=INTEGER}
+    </if>
+    <if test="vo.startTime != null">
+        and t.gmt_create &gt;= #{vo.startTime,jdbcType=TIMESTAMP}
+    </if>
+    <if test="vo.endTime != null">
+        and t.gmt_create &lt;= #{vo.endTime,jdbcType=TIMESTAMP}
+    </if>
+  </sql>
+
+</mapper>

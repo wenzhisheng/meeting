@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.groupmember.dao.IGroupMemberDao">
+
+  <!-- 获取群成员列表 -->
+  <select id="listCluster" resultType="com.meeting.common.pojo.groupmember.GroupMemberVO">
+    select <include refid="base_sql"/>
+    from group_member t
+    where t.group_id = #{vo.groupId,jdbcType=INTEGER}
+    <if test="vo.groupAccount != null">
+      and t.group_account = #{vo.groupAccount,jdbcType=VARCHAR}
+    </if>
+  </select>
+
+  <!-- 群组内部搜索 -->
+  <select id="internalSearch" resultType="com.meeting.common.pojo.groupmember.GroupMemberVO">
+    select <include refid="base_sql"/>
+    from group_member t
+    where
+      t.member_id = #{vo.memberId,jdbcType=INTEGER}
+      <if test="vo.partnerAlias != null">
+        and t.group_account like concat('%',#{vo.partnerAlias},'%')
+      </if>
+  </select>
+
+  <!-- 退出群组 -->
+  <delete id="quitGroup" parameterType="com.meeting.common.pojo.groupmember.GroupMemberVO">
+    delete from group_member
+    where
+      member_id = #{vo.memberId,jdbcType=INTEGER}
+      and group_id = #{vo.groupId,jdbcType=INTEGER}
+  </delete>
+
+  <!-- 移除群组成员 -->
+  <delete id="delete" parameterType="com.meeting.common.pojo.groupmember.GroupMemberVO">
+    delete from group_member
+    where
+      member_id = #{vo.memberId,jdbcType=INTEGER}
+      and group_id = #{vo.groupId,jdbcType=INTEGER}
+  </delete>
+
+  <!-- 解散群组成员 -->
+  <delete id="deleteGroupMember" parameterType="com.meeting.common.pojo.groupmember.GroupMemberVO">
+    delete from group_member
+    where group_id = #{vo.groupId,jdbcType=INTEGER}
+  </delete>
+
+  <!-- 获取群当前人数 -->
+  <select id="getGroupCount" resultType="int">
+    select count(*)
+    from group_member gm
+    where gm.group_id = #{vo.groupId,jdbcType=INTEGER}
+  </select>
+  <select id="getGroupCountByDialog" resultType="string">
+    select count(*)
+    from group_member gm
+    where gm.group_id = #{vo.targetId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 是否是群组成员 -->
+  <select id="isGroupMember" resultType="boolean">
+    select
+      count(*)
+    from group_member gm
+    where
+      gm.member_id = #{vo.memberId,jdbcType=INTEGER}
+      and gm.group_id = #{vo.groupsId,jdbcType=INTEGER};
+  </select>
+  <select id="isGroupMember1" resultType="boolean">
+    select
+      count(*)
+    from group_member gm
+    where
+      gm.member_id = #{vo.memberId,jdbcType=INTEGER}
+      and gm.group_id = #{vo.groupId,jdbcType=INTEGER};
+  </select>
+
+  <!-- 获取添加群组成员 -->
+  <select id="getAddGroupMember" resultType="com.meeting.common.pojo.member.MemberVO">
+    select
+      m.member_id as memberId,
+      m.account,
+      m.nickname,
+      m.birthday,
+      m.email,
+      m.avatar,
+      m.region,
+      m.telephone,
+      m.motto,
+      m.gender
+    from (
+      select f.target_id
+      from friends f
+      where
+        not exists(
+        select * from group_member gm
+        where gm.member_id=f.target_id and gm.group_id=#{vo.groupId,jdbcType=INTEGER})
+        and f.member_id = #{vo.memberId,jdbcType=INTEGER} and (f.status=0 or f.status=1)
+    )zs left join member m on m.member_id=zs.target_id order by m.nickname asc;
+  </select>
+
+  <!-- 对话信息群成员 -->
+  <select id="listMember" resultType="com.meeting.common.pojo.member.MemberVO">
+    select
+      zz.*,
+      (case
+      when zz.isFriends = 1 then 'yes'
+      when zz.memberId = #{vo.memberId,jdbcType=INTEGER} then 'oneself'
+      else 'no' end
+      ) as isFriend
+    from (
+      select
+        zs.*,
+        (select count(*) from friends f
+        where f.member_id = #{vo.memberId,jdbcType=INTEGER} and f.target_id=zs.memberId
+        and (f.status = 0 or f.status = 1)
+        ) as isFriends
+        from(
+          select
+            m.member_id as memberId,
+            m.account,
+            m.nickname,
+            m.birthday,
+            m.email,
+            m.avatar,
+            m.region,
+            m.telephone,
+            m.motto,
+            m.gender,
+            t.group_id as groupId
+          from group_member t
+          left join member m on m.member_id= t.member_id
+          where t.group_id = #{vo.targetId,jdbcType=INTEGER}
+          order by m.nickname asc
+      )zs
+    )zz
+  </select>
+
+  <!-- 群组成员ID -->
+  <select id="listMemberId" resultType="int">
+    select
+      gm.member_id as memberId
+    from group_member gm
+    where gm.group_id = #{vo.targetId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 查找群成员 -->
+  <select id="getGroupMember" resultType="com.meeting.common.pojo.member.MemberVO">
+    select
+      zz.*,
+      (case
+      when zz.isFriends = 1 then 'yes'
+      when zz.memberId = #{vo.memberId,jdbcType=INTEGER} then 'oneself'
+      else 'no' end
+      ) as isFriend
+    from (
+      select
+        zs.*,
+        (select count(*) from friends f
+        where f.member_id = #{vo.memberId,jdbcType=INTEGER} and f.target_id=zs.memberId
+        and (f.status = 0 or f.status = 1)
+        ) as isFriends
+        from(
+          select
+            m.member_id as memberId,
+            m.account,
+            m.nickname,
+            m.birthday,
+            m.email,
+            m.avatar,
+            m.region,
+            m.telephone,
+            m.motto,
+            m.gender,
+            t.group_id as groupId
+          from group_member t
+          left join member m on m.member_id= t.member_id
+          where t.group_id = #{vo.groupId,jdbcType=INTEGER}
+          order by m.nickname asc
+      )zs
+    )zz
+  </select>
+
+  <!-- 获取移除群组成员 -->
+  <select id="getRemoveGroupMember" resultType="com.meeting.common.pojo.member.MemberVO">
+    select
+      m.member_id as memberId,
+      m.account,
+      m.nickname,
+      m.birthday,
+      m.email,
+      m.avatar,
+      m.region,
+      m.telephone,
+      m.motto,
+      m.gender,
+      t.group_id as groupId
+    from group_member t
+    left join member m on m.member_id= t.member_id
+    where
+      t.group_id = #{vo.groupId,jdbcType=INTEGER}
+      and t.member_id != #{vo.memberId,jdbcType=INTEGER}
+    order by m.account asc
+  </select>
+
+  <!-- 获取群组列表 -->
+  <select id="listGroup" resultType="com.meeting.common.pojo.group.GroupVO">
+    select
+      zs.*,(select count(*) from group_member gm where gm.group_id = zs.groupsId) as groupCount
+    from (
+      select
+        g.member_id as memberId,
+        g.groups_id as groupsId,
+        g.account,
+        g.nickname,
+        g.avatar,
+        g.announcement,
+        g.chat_top as chatTop,
+        g.is_disturb as isDisturb
+      from group_member t
+      left join groups g on t.group_id = g.groups_id
+      where
+        t.member_id = #{vo.memberId,jdbcType=INTEGER}
+        <if test="vo.nickname != null and vo.nickname != ''">
+          and g.nickname like concat('%',#{vo.nickname},'%')
+        </if>
+    )zs order by zs.nickname asc
+  </select>
+
+  <!-- 新增群成员 -->
+  <insert id="save">
+    insert into group_member (
+      member_id,
+      group_id,
+      gmt_create
+    ) values (
+      #{vo.memberId,jdbcType=INTEGER},
+      #{vo.groupId,jdbcType=INTEGER},
+      sysdate()
+    )
+  </insert>
+
+  <sql id="base_sql">
+    t.group_member_id as groupMemberId,
+    t.member_id as memberId,
+    t.group_id as groupId,
+    t.gmt_create as gmtCreate
+  </sql>
+
+  <sql id="search_condition">
+    where 1=1
+    <if test="vo.groupMemberId != null">
+        and t.group_member_id = #{vo.groupMemberId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.memberId != null">
+        and t.member_id = #{vo.memberId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.groupId != null">
+        and t.group_id = #{vo.groupId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.startTime != null">
+        and t.gmt_create &gt;= #{vo.startTime,jdbcType=TIMESTAMP}
+    </if>
+    <if test="vo.endTime != null">
+        and t.gmt_create &lt;= #{vo.endTime,jdbcType=TIMESTAMP}
+    </if>
+  </sql>
+
+</mapper>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration status="INFO">
+    <!-- 参数配置 -->
+    <properties>
+        <property name="app_name">weilaizhe_admin</property>
+        <property name="log_path">/log/${app_name}</property>
+        <!-- 文件输出格式 -->
+        <property name="PATTERN">%d{yyyy-MM-dd HH:mm:ss.SSS} |-%-5level [%thread] %c [%L] [%M] -| %msg%xEx%n</property>
+    </properties>
+
+    <appenders>
+
+        <!--<Socket name="Socket" host="10.16.28.18" port="4560">-->
+            <!--<JsonLayout compact="true" eventEol="true" />-->
+            <!--&lt;!&ndash;<PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss,SSS}:%5p [%40.40c{1.}:%3L] - %m%n"/>&ndash;&gt;-->
+            <!--<patternLayout pattern="${PATTERN}" />-->
+        <!--</Socket>-->
+
+        <!-- 控制台日志配置 -->
+        <console name="Console" target="SYSTEM_OUT">
+            <patternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} |-%-5level [%thread] %c [%L] [%M] -| %msg%xEx%n" />
+        </console>
+
+        <!-- 打印出所有信息, append为TRUE表示消息增加到指定文件中，false表示消息覆盖指定的文件内容，默认值是true, 用于临时测试-->
+        <File name="ConsoleLog" fileName="${log_path}/console.log" append="false">
+            <PatternLayout  pattern="${PATTERN}" />
+      </File>
+
+        <!-- 日志文件记录配置 -->
+        <!-- Info级别 -->
+        <RollingFile name="RollingFileInfo" fileName="${log_path}/info.log"
+                     filePattern="${log_path}/$${date:yyyy-MM}/info-%d{yyyy-MM-dd}-%i.log">
+            <PatternLayout pattern="${PATTERN}" />
+            <Filters>
+                <ThresholdFilter level="INFO" />
+                <ThresholdFilter level="WARN" onMatch="DENY" onMismatch="NEUTRAL" />
+            </Filters>
+            <Policies>
+                <!-- 归档每天的文件 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+                <!-- 限制单个文件大小 -->
+                <SizeBasedTriggeringPolicy size="5 MB" />
+            </Policies>
+            <!-- 限制每天文件个数 -->
+            <DefaultRolloverStrategy compressionLevel="0" max="10"/>
+        </RollingFile>
+        <!-- Warn级别 -->
+        <RollingFile name="RollingFileWarn" fileName="${log_path}/warn.log"
+                     filePattern="${log_path}/$${date:yyyy-MM}/warn-%d{yyyy-MM-dd}-%i.log">
+            <PatternLayout pattern="${PATTERN}" />
+            <Filters>
+                <ThresholdFilter level="WARN" />
+                <ThresholdFilter level="ERROR" onMatch="DENY" onMismatch="NEUTRAL" />
+            </Filters>
+            <Policies>
+                <!-- 归档每天的文件 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+                <!-- 限制单个文件大小 -->
+                <SizeBasedTriggeringPolicy size="5 MB" />
+            </Policies>
+            <!-- 限制每天文件个数 -->
+            <DefaultRolloverStrategy compressionLevel="0" max="10"/>
+        </RollingFile>
+        <!-- Error级别 -->
+        <RollingFile name="RollingFileError" fileName="${log_path}/error.log"
+                     filePattern="${log_path}/$${date:yyyy-MM}/error-%d{yyyy-MM-dd}-%i.log">
+            <PatternLayout pattern="${PATTERN}" />
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY" />
+            <Policies>
+                <!-- 归档每天的文件 -->
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+                <!-- 限制单个文件大小 -->
+                <SizeBasedTriggeringPolicy size="5 MB" />
+            </Policies>
+            <!-- 限制每天文件个数 -->
+            <DefaultRolloverStrategy compressionLevel="0" max="10"/>
+        </RollingFile>
+    </appenders>
+
+    <loggers>
+        <!-- 日志级别：debug info warn error -->
+        <root level="info">
+            <!--<appender-ref ref="Socket" />-->
+            <appender-ref ref="Console" />
+            <appender-ref ref="ConsoleLog" />
+            <appender-ref ref="RollingFileInfo" />
+            <appender-ref ref="RollingFileWarn" />
+            <appender-ref ref="RollingFileError" />
+        </root>
+    </loggers>
+
+</configuration>

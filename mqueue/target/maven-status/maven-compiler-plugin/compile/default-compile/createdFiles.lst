@@ -1,0 +1,3 @@
+com\meeting\mqueue\MqueueApplication.class
+com\meeting\mqueue\consumber\PaymentConfig.class
+com\meeting\mqueue\processor\Payement.class

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.baseconfig.dao.IBaseConfigDao">
+
+  <!-- 获取基础配置 -->
+  <select id="getBaseConfig" resultType="com.meeting.common.pojo.baseconfig.BaseConfigVO">
+    select <include refid="base_sql"/>
+    from base_config t limit 1
+  </select>
+
+  <insert id="insert">
+    insert into base_config (
+      max_friend,
+      max_group,
+      max_group_member,
+      secret_key,
+      gmt_modified
+    ) values (
+      #{vo.maxFriend,jdbcType=INTEGER},
+      #{vo.maxGroup,jdbcType=INTEGER},
+      #{vo.maxGroupMember,jdbcType=INTEGER},
+      #{vo.secretKey,jdbcType=VARCHAR},
+      now()
+    )
+  </insert>
+
+  <sql id="base_sql">
+    t.base_config_id as baseConfigId,
+    t.max_friend as maxFriend,
+    t.max_group as maxGroup,
+    t.max_group_member as maxGroupMember,
+    t.secret_key as secretKey,
+    t.gmt_modified as gmtModified
+  </sql>
+
+  <sql id="search_condition">
+    where 1=1
+    <if test="vo.maxFriend != null">
+        and t.max_friend = #{vo.maxFriend,jdbcType=INTEGER}
+    </if>
+    <if test="vo.maxGroup != null">
+        and t.max_group = #{vo.maxGroup,jdbcType=INTEGER}
+    </if>
+    <if test="vo.maxGroupMember != null">
+      and t.max_group_member = #{vo.maxGroupMember,jdbcType=INTEGER}
+    </if>
+    <if test="vo.secretKey != null">
+        and t.secret_key = #{vo.secretKey,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.startTime != null">
+        and t.gmt_modified &gt;= #{vo.startTime,jdbcType=TIMESTAMP}
+    </if>
+    <if test="vo.endTime != null">
+        and t.gmt_modified &lt;= #{vo.endTime,jdbcType=TIMESTAMP}
+    </if>
+  </sql>
+
+</mapper>

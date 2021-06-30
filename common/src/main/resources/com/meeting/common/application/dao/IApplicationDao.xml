@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.application.dao.IApplicationDao">
+
+  <!-- 获取管理员信息 -->
+  <select id="getAdminById" resultType="com.meeting.common.pojo.navigation.NavigationVO">
+    select <include refid="base_sql"/>
+    from admin t
+    where 1=1
+      <if test="vo.adminId != null">
+        and t.admin_id = #{vo.adminId,jdbcType=INTEGER}
+      </if>
+      <if test="vo.account != null">
+        and t.account = #{vo.account,jdbcType=VARCHAR}
+      </if>
+  </select>
+
+  <update id="update" parameterType="com.meeting.common.pojo.admin.AdminVO">
+    update admin t
+    <set>
+      <if test="vo.account != null">
+        t.account = #{vo.account,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.password != null">
+        t.password = #{vo.password,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.telPhone != null">
+        t.telphone = #{vo.telPhone,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.email != null">
+        t.email = #{vo.email,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.isEnable != null">
+        t.is_enable = #{vo.isEnable,jdbcType=INTEGER},
+      </if>
+      <if test="vo.secretKey != null">
+        t.secret_key = #{vo.secretKey,jdbcType=VARCHAR},
+      </if>
+      t.gmt_modified = sysdate()
+    </set>
+    where t.admin_id = #{vo.adminId,jdbcType=INTEGER}
+  </update>
+
+  <!-- 应用列表 -->
+  <select id="list" resultType="com.meeting.common.pojo.application.ApplicationVO">
+    select <include refid="base_sql"/>
+    from application t
+    where 1=1
+    <if test="vo.memberId != null">
+      and t.member_id = #{vo.memberId,jdbcType=INTEGER}
+    </if>
+    order by t.sort desc;
+  </select>
+
+  <!-- 管理员注册账号 -->
+  <insert id="insert" parameterType="com.meeting.common.pojo.application.ApplicationVO">
+    insert into navigation (
+      icon,
+      name,
+      sort,
+      is_enable,
+      secret_key,
+      gmt_create,
+      gmt_modified
+    )
+    values (
+      #{vo.icon,jdbcType=VARCHAR},
+      #{vo.name,jdbcType=VARCHAR},
+      #{vo.sort,jdbcType=VARCHAR},
+      #{vo.isEnable,jdbcType=INTEGER},
+      #{vo.secretKey,jdbcType=VARCHAR},
+      sysdate(),
+      sysdate()
+    )
+  </insert>
+
+  <!-- base -->
+  <sql id="base_sql">
+    t.application_id as applicationId,
+    t.member_id as memberId,
+    t.icon,
+    t.name,
+    t.sort,
+    t.is_enable as isEnable,
+    t.gmt_create as gmtCreate,
+    t.gmt_modified as gmtModified
+  </sql>
+
+</mapper>

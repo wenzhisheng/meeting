@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.member.dao.IMemberDao">
+
+  <!-- 获取登录时间 -->
+  <select id="getMemberLoginTime" resultType="java.lang.String">
+    select
+      (case
+      when timestampdiff(minute , gmt_login, sysdate()) >= 60 and timestampdiff(minute , gmt_login, sysdate()) &lt; 1440 then concat(timestampdiff(hour, gmt_login, sysdate()), '小时前')
+      when timestampdiff(minute , gmt_login, sysdate()) >= 1440 then concat(timestampdiff(day, gmt_login, sysdate()), '天前')
+      else concat(timestampdiff(minute , gmt_login, sysdate()), '分钟前')
+      end) as difftime
+    from member
+    where
+      member_id = #{vo.targetId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 修改手机号码/密码问题 -->
+  <update id="smsVerify" parameterType="com.meeting.common.pojo.member.MemberVO">
+    UPDATE merchant t
+    <set>
+      <if test="vo.telPhone != null">
+        t.telphone = #{vo.telPhone,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.passwordProtectQuestion != null">
+        t.password_protect_question = #{vo.passwordProtectQuestion,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.passwordProtectAnswer != null">
+        t.password_protect_answer = #{vo.passwordProtectAnswer,jdbcType=VARCHAR},
+      </if>
+      t.gmt_modified = now()
+    </set>
+    where t.merchant_id = #{vo.merchantId,jdbcType=BIGINT}
+  </update>
+
+  <!-- 更新会员密码 -->
+  <update id="changePassword">
+    update member t
+    set
+      t.password = #{vo.password,jdbcType=VARCHAR},
+      t.gmt_modified = now()
+    where 1=1
+    <if test="vo.memberId != null">
+      and t.member_id = #{vo.memberId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.account != null">
+      and t.account = #{vo.account,jdbcType=VARCHAR}
+    </if>
+  </update>
+
+  <!-- 获取新的好友列表 -->
+  <select id="getNewFriendList" resultType="com.meeting.common.pojo.member.MemberVO">
+    select
+      m.member_id as memberId,
+      m.account,
+      m.nickname,
+      m.birthday,
+      m.email,
+      m.avatar,
+      m.region,
+      m.telephone,
+      m.motto,
+      m.gender,
+      t.status,
+      t.remark,
+      t.gmt_create as applicationDate
+    from friend_apply t
+    left join member m on t.target_id=m.member_id
+    where t.member_id = #{vo.memberId,jdbcType=INTEGER}
+    order by t.gmt_modified desc
+  </select>
+
+  <!-- 对话获取好友信息 -->
+  <select id="dialogueInfo" resultType="com.meeting.common.pojo.member.MemberDialogDTO">
+    select
+      m.member_id as memberId,
+      m.account,
+      m.nickname,
+      m.birthday,
+      m.email,
+      m.avatar,
+      m.region,
+      m.telephone,
+      m.motto,
+      m.gender,
+      f.alias,
+      f.strong_reminder as strongReminder,
+      f.chat_top as chatTop,
+      f.alias as is_disturb
+    from member m
+    left join friends f on f.target_id = m.member_id
+    where
+      f.member_id = #{vo.memberId,jdbcType=INTEGER}
+      and f.target_id = #{vo.targetId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 会员删除 -->
+  <delete id="delete" parameterType="com.meeting.common.pojo.member.MemberVO">
+    delete from member
+    where member_id = #{vo.member_id,jdbcType=INTEGER}
+  </delete>
+
+  <!-- 更新会员信息 -->
+  <update id="update" parameterType="com.meeting.common.pojo.member.MemberVO">
+    update member t
+    <set>
+      <if test="vo.nickname != null">
+        t.nickname = #{vo.nickname,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.email != null">
+        t.email = #{vo.email,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.avatar != null">
+        t.avatar = #{vo.avatar,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.region != null">
+        t.region = #{vo.region,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.telephone != null">
+        t.telephone = #{vo.telephone,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.motto != null">
+        t.motto = #{vo.motto,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.gender != null">
+        t.gender = #{vo.gender,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.birthday != null">
+        t.birthday = #{vo.birthday,jdbcType=TIMESTAMP},
+      </if>
+      t.gmt_modified = now()
+    </set>
+    where t.member_id = #{vo.memberId,jdbcType=INTEGER}
+  </update>
+
+  <!-- 更新头像 -->
+  <update id="updateAvatar" parameterType="com.meeting.common.pojo.member.MemberVO">
+    update member t
+    set t.avatar = #{vo.avatar,jdbcType=VARCHAR}
+    where t.member_id = #{vo.memberId,jdbcType=INTEGER}
+  </update>
+
+  <!-- 特殊更新 -->
+  <update id="specialUpdate" parameterType="com.meeting.common.pojo.member.MemberVO">
+    update member t
+    <set>
+      <if test="vo.nickname != null">
+        t.nickname = #{vo.nickname,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.email != null">
+        t.email = #{vo.email,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.avatar != null">
+        t.avatar = #{vo.avatar,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.region != null">
+        t.region = #{vo.region,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.telephone != null">
+        t.telephone = #{vo.telephone,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.motto != null">
+        t.motto = #{vo.motto,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.gender != null">
+        t.gender = #{vo.gender,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.isEnable != null">
+        t.is_enable = #{vo.isEnable,jdbcType=INTEGER},
+      </if>
+      <if test="vo.roleType != null">
+        t.role_type = #{vo.roleType,jdbcType=INTEGER},
+      </if>
+      <if test="vo.birthday != null">
+        t.birthday = #{vo.birthday,jdbcType=TIMESTAMP},
+      </if>
+      t.gmt_modified = now()
+    </set>
+    where t.member_id = #{vo.memberId,jdbcType=INTEGER}
+  </update>
+
+  <!-- 更新登录时间 -->
+  <update id="updateLoginTime" parameterType="com.meeting.common.pojo.member.MemberVO">
+    update member zs
+    <set>
+      zs.gmt_login = now()
+    </set>
+    where zs.member_id = #{vo.memberId,jdbcType=INTEGER}
+  </update>
+
+  <!-- 会员修改 -->
+  <update id="updateMerchant" parameterType="com.meeting.common.pojo.member.MemberVO">
+    update member t
+    <set>
+      <if test="vo.merchantName != null">
+        t.merchant_name = #{vo.merchantName,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.secretKey != null">
+        t.secret_key = #{vo.secretKey,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.telPhone != null">
+        t.telphone = #{vo.telPhone,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.email != null">
+        t.email = #{vo.email,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.isEnable != null">
+        t.is_enable = #{vo.isEnable,jdbcType=INTEGER},
+      </if>
+      <if test="vo.orderDelayTime != null">
+        t.order_delay_time = #{vo.orderDelayTime,jdbcType=INTEGER},
+      </if>
+      <if test="vo.ipAllowed != null">
+        t.ip_allowed = #{vo.ipAllowed,jdbcType=VARCHAR},
+      </if>
+      <if test="vo.remark != null">
+        t.remark = #{vo.remark,jdbcType=VARCHAR},
+      </if>
+      gmt_modified = now()
+    </set>
+    where merchant_id = #{vo.merchantId,jdbcType=INTEGER}
+  </update>
+
+  <!-- 更新冻结方式 -->
+  <update id="updateMerchantByFreezeType" parameterType="com.meeting.common.pojo.member.MemberVO">
+    update member t set
+        t.freeze_type = #{vo.freezeType,jdbcType=INTEGER}
+    where t.account = #{vo.account,jdbcType=VARCHAR}
+  </update>
+
+  <!-- 会员登录 -->
+  <select id="login" resultType="com.meeting.common.pojo.member.MemberVO">
+    select
+        t.member_id as memberId,
+        t.account,
+        t.nickname,
+        t.birthday,
+        t.email,
+        t.avatar,
+        t.region,
+        t.telephone,
+        t.motto,
+        t.gender,
+        t.role_type as roleType,
+        t.gmt_login as gmtLogin,
+        t.gmt_create as gmtCreate,
+        t.gmt_modified as gmtModified
+    from member t
+    where
+      t.is_enable = #{vo.isEnable,jdbcType=INTEGER}
+      and t.account = #{vo.account,jdbcType=VARCHAR}
+      and t.password = #{vo.password,jdbcType=VARCHAR}
+  </select>
+
+  <!-- 会员编码或账号是否使用 -->
+  <select id="getCodeOrAccountIsUse" resultType="int">
+    select count(*)
+    from merchant t
+    where 1=1
+    <if test="vo.account != null">
+      and t.account = #{vo.account,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.merchantCode != null">
+      and t.merchant_code = #{vo.merchantCode,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.merchantId != null">
+      and t.merchant_id != #{vo.merchantId,jdbcType=INTEGER}
+    </if>
+  </select>
+
+  <!-- 获取最大Id -->
+  <select id="getMaxId" resultType="int">
+      select ifnull(max(merchant_id), 0) from merchant;
+  </select>
+
+  <!-- 会员分页查询 -->
+  <select id="pageMember" resultType="com.meeting.common.pojo.member.MemberVO">
+    select
+    <include refid="base_sql"/>
+    ,f.balance as balance
+    ,group_concat(m.trade_type_name) as tradeTypeName
+    from merchant t
+    left join merchant_trade_type m on m.merchant_id = t.merchant_id and m.is_enable = 1
+    left join merchant_balance f on f.merchant_id = t.merchant_id
+    <include refid="search_condition"/>
+    group by t.merchant_id
+    order by t.gmt_create desc
+  </select>
+
+  <!-- 列表分页查询 -->
+  <select id="listMember" resultType="com.meeting.common.pojo.member.MemberVO">
+    select <include refid="base_sql"/>
+    from merchant t
+    <include refid="search_condition"/>
+    group by t.merchant_id
+    order by t.gmt_create desc;
+  </select>
+
+  <!-- 列表分页查询 -->
+  <select id="frientList" resultType="com.meeting.common.pojo.member.MemberVO">
+    select
+      <include refid="base_sql"/>
+      ,(case
+      when timestampdiff(minute , gmt_login, sysdate()) >= 60 and timestampdiff(minute , gmt_login, sysdate()) &lt;= 1440 then concat(timestampdiff(hour, gmt_login, sysdate()), '小时')
+      when timestampdiff(minute , gmt_login, sysdate()) >= 1440 then concat(timestampdiff(day, gmt_login, sysdate()), '天')
+    else concat(timestampdiff(minute , gmt_login, sysdate()), '分钟')
+    end) as difftime
+    from member t
+    where t.member_id in
+    <foreach collection="ids" item="item" index="index" open="(" separator="," close=")">
+      #{item}
+    </foreach>
+    order by t.gmt_modified asc;
+  </select>
+
+  <!-- 根据会员编码获取会员信息 -->
+  <select id="getMerchantByCode" resultType="com.meeting.common.pojo.member.MemberVO">
+    select <include refid="base_sql"/>
+    from member t
+    where t.merchant_code = #{vo.merchantCode,jdbcType=VARCHAR}
+  </select>
+
+  <!-- 查询会员 -->
+  <select id="getMemberById" resultType="com.meeting.common.pojo.member.MemberVO">
+    select <include refid="base_sql"/>
+    from member t
+    where 1=1
+      <if test="vo.memberId != null">
+        and t.member_id = #{vo.memberId,jdbcType=INTEGER}
+      </if>
+      <if test="vo.account != null">
+        and t.account = #{vo.account,jdbcType=VARCHAR}
+      </if>
+  </select>
+
+  <!-- 修改密码查询 -->
+  <select id="getMemberByPassword" resultType="com.meeting.common.pojo.member.MemberVO">
+    select
+      t.account,
+      t.email,
+      t.telephone
+    from member t
+    where t.account = #{vo.account,jdbcType=VARCHAR}
+  </select>
+
+  <!-- 查询会员是否已被注册 -->
+  <select id="getMemberByAccount" resultType="int">
+    select count(*)
+    from member t
+    where 1=1
+      <if test="vo.account != null">
+        and t.account = #{vo.account,jdbcType=VARCHAR}
+      </if>
+  </select>
+
+  <!-- 查询会员是否已被注册 -->
+  <select id="searchByAccount" resultType="com.meeting.common.pojo.member.MemberVO">
+    select <include refid="base_sql"/>
+    from member t
+    where 1=1
+    <if test="vo.account != null">
+      and t.account = #{vo.account,jdbcType=VARCHAR}
+    </if>
+  </select>
+
+  <!-- 获取好友对话列表 -->
+  <select id="getDialogueList" resultType="com.meeting.common.pojo.member.MemberVO">
+    select
+      zs.member_id as memberId,
+      zs.account,
+      zs.nickname,
+      zs.avatar,
+      (case when date_format(sysdate(), '%Y') > date_format(zs.gmt_login, '%Y')
+            then date_format(zs.gmt_login, '%Y-%m-%d %H:%i')
+            else date_format(zs.gmt_login, '%m-%d %H:%i')
+      end) as difftime
+    from member zs
+    where zs.member_id in
+    <foreach collection="set" item="item" index="index" open="(" separator="," close=")">
+      #{item}
+    </foreach>
+    order by zs.gmt_message desc;
+  </select>
+
+  <!-- 申请会员 -->
+  <insert id="insert" parameterType="com.meeting.common.pojo.member.MemberVO">
+    insert into member (
+      account,
+      password,
+      nickname,
+      birthday,
+      email,
+      avatar,
+      region,
+      telephone,
+      motto,
+      gender,
+      is_enable,
+      role_type,
+      gmt_login,
+      gmt_create,
+      gmt_modified
+    ) values (
+      #{vo.account,jdbcType=VARCHAR},
+      #{vo.password,jdbcType=VARCHAR},
+      #{vo.nickname,jdbcType=VARCHAR},
+      #{vo.birthday,jdbcType=VARCHAR},
+      #{vo.email,jdbcType=VARCHAR},
+      #{vo.avatar,jdbcType=VARCHAR},
+      #{vo.region,jdbcType=VARCHAR},
+      #{vo.telephone,jdbcType=VARCHAR},
+      #{vo.motto,jdbcType=VARCHAR},
+      #{vo.gender,jdbcType=INTEGER},
+      #{vo.isEnable,jdbcType=INTEGER},
+      #{vo.roleType,jdbcType=INTEGER},
+      sysdate(),
+      sysdate(),
+      sysdate()
+    );
+  </insert>
+
+  <!-- base -->
+  <sql id="base_sql">
+    t.member_id as memberId,
+    t.account,
+    t.password,
+    t.nickname,
+    t.birthday,
+    t.email,
+    t.avatar,
+    t.region,
+    t.telephone,
+    t.motto,
+    t.gender,
+    t.is_enable as isEnable,
+    t.role_type as roleType,
+    t.gmt_login as gmtLogin,
+    t.gmt_create as gmtCreate,
+    t.gmt_modified as gmtModified
+  </sql>
+
+  <!-- 查询条件 -->
+  <sql id="search_condition">
+    where 1=1
+    <if test="vo.memberId != null">
+      and t.member_id = #{vo.memberId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.account != null">
+      and t.account = #{vo.account,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.password != null">
+      and t.password = #{vo.password,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.nickname != null">
+      and t.nickname = #{vo.nickname,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.birthday != null">
+      and t.birthday = #{vo.birthday,jdbcType=TIMESTAMP}
+    </if>
+    <if test="vo.avatar != null">
+      and t.avatar = #{vo.avatar,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.region != null">
+      and t.region = #{vo.region,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.telPhone != null">
+      and t.telphone = #{vo.telPhone,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.motto != null">
+      and t.motto = #{vo.motto,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.email != null">
+      and t.email = #{vo.email,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.gender != null">
+      and t.gender = #{vo.gender,jdbcType=TINYINT}
+    </if>
+    <if test="vo.isEnable != null">
+      and t.is_enable = #{vo.isEnable,jdbcType=TINYINT}
+    </if>
+    <if test="vo.roleType != null">
+      and t.role_type = #{vo.roleType,jdbcType=TINYINT}
+    </if>
+    <if test="vo.gmtLogin != null ">
+      and t.gmt_login = #{vo.gmtLogin,jdbcType=TIMESTAMP}
+    </if>
+    <if test="vo.startTime != null ">
+      and t.gmt_create &gt;= #{vo.startTime,jdbcType=TIMESTAMP}
+    </if>
+    <if test="vo.endTime != null ">
+      and t.gmt_create &lt;= #{vo.endTime,jdbcType=TIMESTAMP}
+    </if>
+  </sql>
+
+</mapper>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.friendapply.dao.IFriendApplyDao">
+
+  <!-- 分页查询 -->
+  <select id="page" resultType="com.meeting.common.pojo.friendapply.FriendApplyVO">
+    select <include refid="base_sql"/>
+    from friend_apply t
+    where <include refid="search_condition"/>
+  </select>
+
+  <!-- 更新申请状态 -->
+  <update id="updateStatus" parameterType="com.meeting.common.pojo.friendapply.FriendApplyVO">
+    update friend_apply t
+      set
+      t.status = #{vo.status,jdbcType=TINYINT},
+      t.gmt_modified = sysdate()
+    where
+      t.member_id =  #{vo.memberId,jdbcType=INTEGER}
+      and t.target_id =  #{vo.targetId,jdbcType=INTEGER}
+  </update>
+
+  <!-- 获取好友申请状态 -->
+  <select id="getFriendApplyByAdd" resultType="com.meeting.common.pojo.friendapply.FriendApplyVO">
+    select
+      t.status
+    from friend_apply t
+    where
+      t.member_id = #{memberId,jdbcType=INTEGER}
+      and t.target_id = #{targetId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 申请中数量 -->
+  <select id="applyingCount" resultType="int">
+    select count(*)
+    from friend_apply t
+    where
+      t.status = 0
+      and t.member_id = #{vo.memberId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 删除好友申请 -->
+  <delete id="deleteFriendApply" parameterType="com.meeting.common.pojo.friendapply.FriendApplyVO">
+    delete from friend_apply
+    where
+      (member_id = #{vo.memberId,jdbcType=INTEGER} and target_id = #{vo.targetId,jdbcType=INTEGER})
+      or (member_id = #{vo.targetId,jdbcType=INTEGER} and target_id = #{vo.memberId,jdbcType=INTEGER})
+  </delete>
+
+  <!-- 已存在就更新备注信息和事件 -->
+  <update id="updateSave" parameterType="com.meeting.common.pojo.friendapply.FriendApplyVO">
+    update friend_apply t
+      set
+      t.remark = #{vo.remark,jdbcType=VARCHAR},
+      t.gmt_create = sysdate()
+    where
+      t.member_id = #{vo.memberId,jdbcType=INTEGER}
+      and t.target_id = #{vo.targetId,jdbcType=INTEGER}
+  </update>
+
+  <!-- 是否存在 -->
+  <select id="isFriendApply" resultType="int">
+    select count(*)
+    from friend_apply t
+    where
+      t.member_id = #{vo.memberId,jdbcType=INTEGER}
+      and t.target_id = #{vo.targetId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 保存申请好友 -->
+  <insert id="save">
+    insert into friend_apply (
+      member_id,
+      target_id,
+      status,
+      remark,
+      gmt_create,
+      gmt_modified
+    ) values (
+      #{vo.memberId,jdbcType=INTEGER},
+      #{vo.targetId,jdbcType=INTEGER},
+      #{vo.status,jdbcType=INTEGER},
+      #{vo.remark,jdbcType=VARCHAR},
+      sysdate(),
+      sysdate()
+    )
+  </insert>
+
+  <sql id="base_sql">
+    t.friend_apply_id as friendApplyId,
+    t.member_id as memberId,
+    t.target_id as targetId,
+    t.status,
+    t.remark,
+    t.gmt_create as gmtCreate,
+    t.gmt_modified as gmtModified
+  </sql>
+
+  <sql id="search_condition">
+    where 1=1
+    <if test="vo.sendUserId != null">
+        and t.send_user_id = #{vo.sendUserId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.sendUserId != null">
+        and t.send_user_id = #{vo.sendUserId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.acceptUserId != null">
+        and t.accept_user_id = #{vo.acceptUserId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.friendTypeId != null">
+        and t.friend_type_id = #{vo.friendTypeId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.status != null">
+        and t.status = #{vo.status,jdbcType=TINYINT}
+    </if>
+    <if test="vo.remark != null">
+        and t.remark = #{vo.remark,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.startTime != null">
+        and t.gmt_create &gt;= #{vo.startTime,jdbcType=TIMESTAMP}
+    </if>
+    <if test="vo.endTime != null">
+        and t.gmt_create &lt;= #{vo.endTime,jdbcType=TIMESTAMP}
+    </if>
+  </sql>
+
+</mapper>

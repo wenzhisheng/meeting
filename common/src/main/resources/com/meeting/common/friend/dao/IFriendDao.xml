@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.friend.dao.IFriendDao">
+
+  <!-- 更新好友 -->
+  <update id="update" parameterType="com.meeting.common.pojo.friend.FriendVO">
+    update friends t
+    <set>
+
+    </set>
+    where 1=1
+  </update>
+
+  <!-- 更新别名 -->
+  <update id="updateAlias" parameterType="com.meeting.common.pojo.friend.FriendVO">
+    update friends t
+    <set>
+      <if test="vo.remark != null and vo.remark != ''">
+        t.alias = #{vo.remark,jdbcType=VARCHAR}
+      </if>
+      <if test="vo.remark == ''">
+        t.alias = (select m.nickname from member m where member_id = #{vo.targetId,jdbcType=INTEGER})
+      </if>
+    </set>
+    where
+      t.member_id = #{vo.memberId,jdbcType=INTEGER}
+      and t.target_id = #{vo.targetId,jdbcType=INTEGER}
+  </update>
+
+  <!-- 获取好友 -->
+  <select id="getFriend" resultType="com.meeting.common.pojo.friend.FriendVO">
+    select <include refid="base_sql"/>
+    from friends t
+    <include refid="search_condition"/>
+  </select>
+
+  <!-- 获取好友消息控制 -->
+  <select id="getFriendByDialog" resultType="com.meeting.common.pojo.friend.FriendVO">
+    select
+      t.chat_top as chatTop,
+      t.is_disturb as isDisturb,
+      t.strong_reminder as strongReminder,
+      t.alias,
+      t.account,
+      (select m.avatar from member m where m.member_id=#{vo.targetId,jdbcType=INTEGER}) as avatar
+    from friends t
+    where
+      t.member_id = #{vo.memberId,jdbcType=INTEGER}
+      and t.target_id = #{vo.targetId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 好友内部搜索 -->
+  <select id="internalSearch" resultType="com.meeting.common.pojo.friend.FriendVO">
+    select
+      <include refid="base_sql"/>
+    from friends t
+    where
+      t.member_id = #{vo.memberId,jdbcType=INTEGER}
+      <if test="vo.alias != null">
+        and t.alias like concat('%',#{vo.alias},'%')
+      </if>
+  </select>
+
+  <!-- 好友列表 -->
+  <select id="list" resultType="com.meeting.common.pojo.friend.FriendVO">
+    select <include refid="base_sql"/>
+    from friends t
+    <include refid="search_condition"/>
+  </select>
+
+  <!-- 好友列表 -->
+  <select id="listFriend" resultType="com.meeting.common.pojo.friend.FriendResultVO">
+    select
+      t.friends_id as friendsId,
+      t.target_id as targetId,
+      t.account,
+      t.alias,
+      t.status,
+      m.avatar,
+      m.gender,
+      m.nickname,
+      m.birthday,
+      m.email,
+      m.telephone,
+      m.region,
+      m.motto,
+      (case when date_format(sysdate(), '%Y') > date_format(m.gmt_login, '%Y')
+      then date_format(m.gmt_login, '%Y/%m/%d %H:%i')
+      else date_format(m.gmt_login, '%m/%d %H:%i')
+      end) as difftime
+    from friends t left join member m on t.target_id = m.member_id
+    where
+      (t.status = 0 or t.status = 1)
+      and t.member_id= #{vo.memberId,jdbcType=INTEGER}
+      <if test="vo.friendClassId != null">
+        and t.friend_class_id = #{vo.friendClassId,jdbcType=INTEGER}
+      </if>
+      <if test="vo.alias != null and vo.alias != ''">
+        and t.alias like concat('%',#{vo.alias},'%')
+      </if>
+    order by t.alias asc
+  </select>
+
+  <!-- 好友总数会员 -->
+  <select id="countFriendMeember" resultType="int">
+    select count(*)
+    from friends f
+    where (f.status=0 or f.status=1)
+      and f.member_id= #{vo.memberId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 好友总数目标 -->
+  <select id="countFriendTarget" resultType="int">
+    select count(*)
+    from friends f
+    where (f.status=0 or f.status=1)
+      and f.member_id= #{vo.targetId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 更新添加 -->
+  <update id="updateAdd" parameterType="com.meeting.common.pojo.friend.FriendVO">
+    update friends zs
+    set zs.status = 0
+    where
+      (zs.member_id = #{vo.memberId,jdbcType=INTEGER} and zs.target_id = #{vo.targetId,jdbcType=INTEGER})
+      or (zs.member_id = #{vo.targetId,jdbcType=INTEGER} and zs.target_id = #{vo.memberId,jdbcType=INTEGER})
+  </update>
+
+  <!-- 删除好友 -->
+  <update id="deleteFriend" parameterType="com.meeting.common.pojo.friend.FriendVO">
+    update friends zs
+    set zs.status = 3
+    where
+      (zs.member_id = #{vo.memberId,jdbcType=INTEGER} and zs.target_id = #{vo.targetId,jdbcType=INTEGER})
+      or (zs.member_id = #{vo.targetId,jdbcType=INTEGER} and zs.target_id = #{vo.memberId,jdbcType=INTEGER})
+  </update>
+
+  <!-- 拉黑好友 -->
+  <update id="blacklistFriend" parameterType="com.meeting.common.pojo.friend.FriendVO">
+    update friends zs
+    set zs.status = 2
+    where
+      (zs.member_id = #{vo.memberId,jdbcType=INTEGER} and zs.target_id = #{vo.targetId,jdbcType=INTEGER})
+      or (zs.member_id = #{vo.targetId,jdbcType=INTEGER} and zs.target_id = #{vo.memberId,jdbcType=INTEGER})
+  </update>
+
+  <!-- 解除拉黑 -->
+  <update id="unblock" parameterType="com.meeting.common.pojo.friend.FriendVO">
+    update friends zs
+    set zs.status = 0
+    where
+      (zs.member_id = #{vo.memberId,jdbcType=INTEGER} and zs.target_id = #{vo.targetId,jdbcType=INTEGER})
+      or (zs.member_id = #{vo.targetId,jdbcType=INTEGER} and zs.target_id = #{vo.memberId,jdbcType=INTEGER})
+  </update>
+
+  <!-- 黑名单好友 -->
+  <select id="blacklistList" resultType="com.meeting.common.pojo.friend.FriendResultVO">
+    select
+      t.friends_id as friendsId,
+      t.target_id as targetId,
+      t.account,
+      t.alias,
+      t.status,
+      m.avatar,
+      m.gender,
+      m.nickname,
+      m.birthday,
+      m.email,
+      m.telephone,
+      m.region,
+      m.motto,
+      (case when date_format(sysdate(), '%Y') > date_format(m.gmt_login, '%Y')
+      then date_format(m.gmt_login, '%Y/%m/%d %H:%i')
+      else date_format(m.gmt_login, '%m/%d %H:%i')
+      end) as difftime
+    from friends t left join member m on t.target_id = m.member_id
+    where
+      t.status = 2
+      and t.member_id= #{vo.memberId,jdbcType=INTEGER}
+  </select>
+
+  <!-- 查询是否是好友 -->
+  <select id="isFriend" resultType="boolean">
+    select count(*) from friends t
+    where
+      (t.member_id = #{vo.memberId,jdbcType=INTEGER} and t.target_id = #{vo.targetId,jdbcType=INTEGER})
+      or (t.member_id = #{vo.memberId,jdbcType=INTEGER} and t.target_id = #{vo.targetId,jdbcType=INTEGER})
+  </select>
+
+  <!-- 是否是删除好友 -->
+  <select id="isDeleteFriend" resultType="boolean">
+    select count(*) from (
+      select * from friends t
+        where
+          (t.member_id = #{vo.memberId,jdbcType=INTEGER} and t.target_id = #{vo.targetId,jdbcType=INTEGER})
+          or (t.member_id = #{vo.memberId,jdbcType=INTEGER} and t.target_id = #{vo.targetId,jdbcType=INTEGER})
+    )zs where (zs.status = 0 or zs.status = 1)
+  </select>
+
+  <!-- 同意添加 -->
+  <insert id="save">
+    insert into friends (
+      member_id,
+      target_id,
+      account,
+      alias,
+      friend_class_id,
+      strong_reminder,
+      chat_top,
+      is_disturb,
+      status,
+      gmt_create
+    ) values (
+      #{vo.memberId,jdbcType=INTEGER},
+      #{vo.targetId,jdbcType=INTEGER},
+      #{vo.account,jdbcType=VARCHAR},
+      #{vo.alias,jdbcType=VARCHAR},
+      #{vo.friendClassId,jdbcType=INTEGER},
+      #{vo.strongReminder,jdbcType=VARCHAR},
+      #{vo.chatTop,jdbcType=VARCHAR},
+      #{vo.isDisturb,jdbcType=VARCHAR},
+      #{vo.status,jdbcType=INTEGER},
+      sysdate()
+    );
+  </insert>
+
+  <sql id="base_sql">
+    t.friends_id as friendsId,
+    t.member_id as memberId,
+    t.target_id as targetId,
+    t.account,
+    t.alias,
+    t.friend_class_id as friendClassId,
+    t.strong_reminder as strongReminder,
+    t.chat_top as chatTop,
+    t.is_disturb as isDisturb,
+    t.status,
+    t.gmt_create as gmtCreate
+  </sql>
+
+  <sql id="search_condition">
+    where 1=1
+    <if test="vo.friendsId != null">
+        and t.friends_id = #{vo.friendsId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.memberId != null">
+        and t.member_id = #{vo.memberId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.targetId != null">
+        and t.target_id = #{vo.targetId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.account != null">
+        and t.account = #{vo.account,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.alias != null">
+        and t.alias = #{vo.alias,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.friendClassId != null">
+        and t.friend_class_id = #{vo.friendClassId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.strongReminder != null">
+      and t.strong_reminder = #{vo.strongReminder,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.chatTop != null">
+      and t.chat_top = #{vo.chatTop,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.isDisturb != null">
+      and t.is_disturb = #{vo.isDisturb,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.status != null">
+      and t.status = #{vo.status,jdbcType=INTEGER}
+    </if>
+    <if test="vo.startTime != null">
+        and t.gmt_create &gt;= #{vo.startTime,jdbcType=TIMESTAMP}
+    </if>
+    <if test="vo.endTime != null">
+        and t.gmt_create &lt;= #{vo.endTime,jdbcType=TIMESTAMP}
+    </if>
+  </sql>
+
+</mapper>

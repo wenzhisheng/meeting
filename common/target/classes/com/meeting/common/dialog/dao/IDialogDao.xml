@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.dialog.dao.IDialogDao">
+
+  <!-- 获取对话列表 -->
+  <select id="listDialog" resultType="com.meeting.common.pojo.dialog.DialogVO">
+    select
+      @num:=@num+1 as id,
+      t.dialogue_id as dialogueId,
+      t.member_id as memberId,
+      t.target_id as targetId,
+      t.account,
+      t.alias,
+      t.avatar,
+      t.unread,
+      t.chat_type as chatType,
+      t.gmt_message as gmtMessage,
+      (case when t.chat_type='single'
+      then (select fm.content from friend_message fm where (fm.send_id=t.target_id or fm.receive_id=t.target_id) and fm.is_back=0 and fm.is_del=0 order by fm.gmt_modified desc limit 1)
+      else (select gm.content from group_message gm where gm.group_id=t.target_id and gm.is_back=0 and gm.is_del=0 order by gm.gmt_modified desc limit 1)
+      end) as content
+    from dialog t
+    where
+      t.member_id= #{vo.memberId,jdbcType=INTEGER}
+      <if test="vo.alias != null and vo.alias != ''">
+        and t.alias like concat('%',#{vo.alias,jdbcType=VARCHAR},'%')
+        or t.content like concat('%',#{vo.alias,jdbcType=VARCHAR},'%')
+      </if>
+    order by t.gmt_message desc
+  </select>
+
+  <!-- 读取消息 -->
+  <update id="updateUnread" parameterType="com.meeting.common.pojo.socketio.ChatMessageVO">
+    update dialog d
+    set
+      d.unread=0
+    where
+      d.chat_type=#{vo.messageType,jdbcType=VARCHAR}
+      and d.member_id=#{vo.memberId,jdbcType=INTEGER}
+      and d.target_id=#{vo.targetId,jdbcType=INTEGER}
+  </update>
+
+  <!-- 删除对话 -->
+  <delete id="deleteDialogue" parameterType="com.meeting.common.pojo.dialog.DialogVO">
+    delete from dialog
+    where
+      member_id=#{vo.memberId,jdbcType=INTEGER}
+      and target_id=#{vo.targetId,jdbcType=INTEGER}
+      and chat_type=#{vo.chatType,jdbcType=VARCHAR}
+  </delete>
+
+  <!-- 保存对话 -->
+  <insert id="save">
+    insert into dialog (
+      member_id,
+      target_id,
+      account,
+      alias,
+      avatar,
+      content,
+      unread,
+      chat_type,
+      gmt_message
+    ) values (
+      #{vo.memberId,jdbcType=INTEGER},
+      #{vo.targetId,jdbcType=INTEGER},
+      #{vo.account,jdbcType=VARCHAR},
+      #{vo.alias,jdbcType=VARCHAR},
+      #{vo.avatar,jdbcType=VARCHAR},
+      #{vo.content,jdbcType=VARCHAR},
+      0,
+      #{vo.messageType,jdbcType=VARCHAR},
+      now()
+    ) on duplicate key update
+      member_id = #{vo.memberId,jdbcType=INTEGER},
+      target_id = #{vo.targetId,jdbcType=INTEGER},
+      account = #{vo.account,jdbcType=VARCHAR},
+      alias = #{vo.alias,jdbcType=VARCHAR},
+      avatar = #{vo.avatar,jdbcType=VARCHAR},
+      content = #{vo.content,jdbcType=VARCHAR},
+      chat_type = #{vo.messageType,jdbcType=VARCHAR},
+      gmt_message = now()
+  </insert>
+  <!-- 保存目标对话单聊 -->
+  <insert id="saveTargetSingle">
+    insert into dialog (
+      member_id,
+      target_id,
+      account,
+      alias,
+      avatar,
+      chat_type,
+      unread,
+      gmt_message
+    ) values (
+      #{vo.targetId,jdbcType=INTEGER},
+      #{vo.memberId,jdbcType=INTEGER},
+      #{vo.memberAccount,jdbcType=VARCHAR},
+      #{vo.memberAlias,jdbcType=VARCHAR},
+      #{vo.memberAvatar,jdbcType=VARCHAR},
+      #{vo.messageType,jdbcType=VARCHAR},
+      1,
+      now()
+    ) on duplicate key update
+      unread = unread+1,
+      gmt_message = now()
+  </insert>
+  <!-- 保存目标对话群聊 -->
+  <insert id="saveTargetCluster">
+    insert into dialog (
+      member_id,
+      target_id,
+      account,
+      alias,
+      avatar,
+      chat_type,
+      unread,
+      gmt_message
+    ) values
+    <foreach collection ="list" item="vo" index= "index" separator =",">
+    (
+      #{vo.memberId,jdbcType=INTEGER},
+      #{vo.targetId,jdbcType=INTEGER},
+      #{vo.account,jdbcType=VARCHAR},
+      #{vo.alias,jdbcType=VARCHAR},
+      #{vo.avatar,jdbcType=VARCHAR},
+      #{vo.messageType,jdbcType=VARCHAR},
+      1,
+      now()
+    )
+    </foreach>
+    on duplicate key update
+      unread = unread+1,
+      gmt_message = now()
+  </insert>
+
+  <sql id="base_sql">
+    t.dialogue_id as dialogueId,
+    t.member_id as memberId,
+    t.target_id as targetId,
+    t.account,
+    t.alias,
+    t.avatar,
+    t.content,
+    t.unread,
+    t.chat_type as chatType,
+    t.gmt_message as gmtMessage
+  </sql>
+
+  <sql id="search_condition">
+    where 1=1
+    <if test="vo.friendsId != null">
+        and t.friends_id = #{vo.friendsId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.memberId != null">
+        and t.member_id = #{vo.memberId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.targetId != null">
+        and t.target_id = #{vo.targetId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.partnerAccount != null">
+        and t.partner_account = #{vo.partnerAccount,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.partnerAlias != null">
+        and t.partner_alias = #{vo.partnerAlias,jdbcType=VARCHAR}
+    </if>
+    <if test="vo.friendClassId != null">
+        and t.friend_class_id = #{vo.friendClassId,jdbcType=INTEGER}
+    </if>
+    <if test="vo.status != null">
+      and t.status = #{vo.status,jdbcType=INTEGER}
+    </if>
+    <if test="vo.startTime != null">
+        and t.gmt_create &gt;= #{vo.startTime,jdbcType=TIMESTAMP}
+    </if>
+    <if test="vo.endTime != null">
+        and t.gmt_create &lt;= #{vo.endTime,jdbcType=TIMESTAMP}
+    </if>
+  </sql>
+
+</mapper>

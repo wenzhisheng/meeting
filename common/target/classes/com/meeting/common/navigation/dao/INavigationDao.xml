@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.meeting.common.navigation.dao.INavigationDao">
+
+  <!-- 获取列表 -->
+  <select id="list" resultType="com.meeting.common.pojo.navigation.NavigationVO">
+    select <include refid="base_sql"/>
+    from navigation t
+    order by t.sort desc;
+  </select>
+
+  <!-- 管理员注册账号 -->
+  <insert id="insert" parameterType="com.meeting.common.pojo.navigation.NavigationVO">
+    insert into navigation (
+      icon,
+      name,
+      sort,
+      is_enable,
+      secret_key,
+      gmt_create,
+      gmt_modified
+    )
+    values (
+      #{vo.icon,jdbcType=VARCHAR},
+      #{vo.name,jdbcType=VARCHAR},
+      #{vo.sort,jdbcType=VARCHAR},
+      #{vo.isEnable,jdbcType=INTEGER},
+      #{vo.secretKey,jdbcType=VARCHAR},
+      sysdate(),
+      sysdate()
+    )
+  </insert>
+
+  <!-- base -->
+  <sql id="base_sql">
+    t.navigation_id as navigationId,
+    t.icon as icon,
+    t.name as name,
+    t.sort as sort,
+    t.is_enable as isEnable,
+    t.gmt_create as gmtCreate,
+    t.gmt_modified as gmtModified
+  </sql>
+
+</mapper>
